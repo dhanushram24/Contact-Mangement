@@ -3,82 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Contact Management</title>
+    <title>Contact Management</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="login-section">
-            <h2>🔐 Login to Contact Management</h2>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input 
-                        id="username" 
-                        type="text" 
-                        placeholder="Enter your username" 
-                        value="abadmin" 
-                        required
-                        autocomplete="username"
-                    >
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input 
-                        id="password" 
-                        type="password" 
-                        placeholder="Enter your password" 
-                        required
-                        autocomplete="current-password"
-                    >
-                </div>
-                
-                <button type="submit">Login</button>
-            </form>
-            
-            <div class="error" id="error"></div>
+<div class="container">
+
+    <!-- ══ App Header ════════════════════════════════════════ -->
+    <header class="app-header">
+        <div class="app-brand">
+            <div class="app-icon">🗂</div>
+            <div>
+                <div class="app-title">Contact Management</div>
+                <div class="app-sub">Paramantra CRM</div>
+            </div>
         </div>
-        
-        <div class="results-section">
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p class="loading-text">Authenticating...</p>
+
+        <!-- shown after login -->
+        <div class="session-badge" id="sessionBadge">
+            <div class="session-avatar" id="sessionAvatar">AB</div>
+            <div>
+                <div class="session-name" id="sessionName">—</div>
+                <div class="session-db"   id="sessionDb">—</div>
             </div>
-            
-            <div class="user-info" id="userInfo">
-                <h3>User Information</h3>
-                <div class="info-row">
-                    <span class="info-label">Username:</span>
-                    <span class="info-value" id="displayUsername"></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Database:</span>
-                    <span class="info-value" id="displayDatabase"></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Access Token:</span>
-                    <span class="info-value" id="displayToken"></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Total Contacts:</span>
-                    <span class="info-value" id="displayCount"></span>
-                </div>
+        </div>
+        <button class="btn-logout" id="logoutBtn">Logout</button>
+    </header>
+
+    <!-- ══ Login Card ════════════════════════════════════════ -->
+    <div class="login-section" id="loginSection">
+        <h2>Welcome back</h2>
+        <p class="login-sub">Sign in to manage contacts &amp; tickets</p>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input
+                    id="username" type="text"
+                    placeholder="Enter your username"
+                    value="abadmin" required
+                    autocomplete="username">
             </div>
-            
-            <div class="contacts-section" id="contactsSection">
-                <h3>Your Contacts</h3>
-                <div id="contactsList"></div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                    id="password" type="password"
+                    placeholder="Enter your password"
+                    required autocomplete="current-password">
             </div>
-            
+            <button type="submit" id="loginBtn">Login</button>
+        </form>
+
+        <div class="error" id="error"></div>
+    </div>
+
+    <!-- ══ Global loading ════════════════════════════════════ -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p class="loading-text">Authenticating…</p>
+    </div>
+
+    <!-- ══ Stat strip (post-login) ═══════════════════════════ -->
+    <div class="stat-strip" id="statStrip">
+        <div class="stat-card c-blue">
+            <div class="stat-label">Username</div>
+            <div class="stat-val sm" id="statUser">—</div>
+        </div>
+        <div class="stat-card c-purple">
+            <div class="stat-label">Database</div>
+            <div class="stat-val sm" id="statDb">—</div>
+        </div>
+        <div class="stat-card c-green">
+            <div class="stat-label">Total Contacts</div>
+            <div class="stat-val" id="statContacts">0</div>
+        </div>
+        <div class="stat-card c-amber">
+            <div class="stat-label">Token Expires In</div>
+            <div class="stat-val sm">
+                <span id="tokenCountdown">—</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Token strip ════════════════════════════════════════ -->
+    <div class="token-strip" id="tokenStrip">
+        <div class="tlabel">Access Token</div>
+        <div class="tval" id="displayToken">—</div>
+    </div>
+
+    <!-- keep for JS compat (hidden by CSS) -->
+    <div class="user-info" id="userInfo">
+        <span id="displayUsername"></span>
+        <span id="displayDatabase"></span>
+        <span id="displayCount"></span>
+    </div>
+
+    <!-- ══ Tabs ═══════════════════════════════════════════════ -->
+    <div class="tabs-wrapper" id="tabsWrapper">
+        <nav class="tabs-nav">
+            <button class="tab-btn active" id="tabContacts"
+                    onclick="switchTab('contacts')">
+                👥 Contacts
+                <span class="tab-count" id="contactTabCount">0</span>
+            </button>
+            <button class="tab-btn" id="tabTickets"
+                    onclick="switchTab('tickets')">
+                🎫 Tickets
+                <span class="tab-count" id="ticketTabCount">0</span>
+            </button>
+        </nav>
+
+        <!-- ── Contacts panel ── -->
+        <div class="tab-panel active" id="panelContacts">
+            <div class="panel-header">
+                <h3>
+                    <span class="dot"></span>
+                    Your Contacts
+                </h3>
+                <span class="panel-meta" id="contactsMeta"></span>
+            </div>
+
+            <!-- contacts grid rendered here by JS -->
+            <div id="contactsList"></div>
+
             <div class="no-contacts" id="noContacts">
                 <div class="no-contacts-icon">📭</div>
                 <p>No contacts found for this user.</p>
             </div>
         </div>
-    </div>
 
-    <script src="/static/app.js"></script>
+        <!-- ── Tickets panel ── -->
+        <div class="tab-panel" id="panelTickets">
+            <div class="panel-header">
+                <h3>
+                    <span class="dot amber"></span>
+                    Tickets + Contact Info
+                </h3>
+                <span class="panel-meta" id="ticketsMeta">Joined on customer_id = contact.id</span>
+            </div>
+
+            <!-- Filter bar -->
+            <div class="filter-bar">
+                <select class="filter-select" id="statusFilter"
+                        onchange="applyTicketFilter()">
+                    <option value="">All Statuses</option>
+                    <option value="0">Status 0 — Open</option>
+                    <option value="1">Status 1 — Open</option>
+                    <option value="6">Status 6 — Closed</option>
+                    <option value="9">Status 9 — Pending</option>
+                </select>
+
+                <select class="filter-select" id="channelFilter"
+                        onchange="applyTicketFilter()">
+                    <option value="">All Channels</option>
+                    <option value="2">Telephone</option>
+                    <option value="3">SMS</option>
+                    <option value="4">Hotline</option>
+                    <option value="8">Web</option>
+                </select>
+
+                <input class="filter-input" id="subjectSearch"
+                       placeholder="Search subject…"
+                       oninput="applyTicketFilter()">
+            </div>
+
+            <!-- Tickets loading spinner -->
+            <div id="ticketsLoading">
+                <div class="spinner"></div>
+                <p class="loading-text">Loading tickets…</p>
+            </div>
+
+            <!-- Tickets table -->
+            <div class="tbl-wrap" id="ticketsTableWrap">
+                <table id="ticketsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Category</th>
+                            <th>Channel</th>
+                            <th>Contact Name</th>
+                            <th>Phone / Fax</th>
+                            <th>Email</th>
+                            <th>Created</th>
+                            <th>Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ticketsBody"></tbody>
+                </table>
+            </div>
+
+            <div class="no-contacts" id="noTickets">
+                <div class="no-contacts-icon">🎫</div>
+                <p>No tickets found.</p>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="ticketsPagination">
+                <span class="page-info" id="pageInfo"></span>
+                <button class="page-btn" onclick="changePage(-1)">‹ Prev</button>
+                <span class="page-current" id="pageCurrent">Page 1</span>
+                <button class="page-btn" onclick="changePage(1)">Next ›</button>
+            </div>
+        </div>
+        <!-- /panelTickets -->
+
+    </div>
+    <!-- /tabsWrapper -->
+
+</div>
+<!-- /container -->
+
+<script src="/static/app.js"></script>
 </body>
 </html>

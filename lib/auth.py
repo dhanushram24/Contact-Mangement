@@ -30,17 +30,7 @@ class TokenManager:
         self.config = config or AuthConfig()
     
     def create_token(self, username: str, database: str, **extra_data) -> str:
-        """
-        Create JWT token with user information
-        
-        Args:
-            username: User's username
-            database: Database name
-            **extra_data: Additional data to include in token
-            
-        Returns:
-            JWT token string
-        """
+        """Create JWT token with user information"""
         expire = datetime.utcnow() + timedelta(minutes=self.config.token_expire_minutes)
         
         payload = {
@@ -60,18 +50,7 @@ class TokenManager:
         return token
     
     def verify_token(self, token: str) -> Dict:
-        """
-        Verify and decode JWT token
-        
-        Args:
-            token: JWT token string
-            
-        Returns:
-            Decoded token payload
-            
-        Raises:
-            JWTError: If token is invalid or expired
-        """
+        """Verify and decode JWT token"""
         try:
             payload = jwt.decode(
                 token,
@@ -79,7 +58,6 @@ class TokenManager:
                 algorithms=[self.config.algorithm]
             )
             
-            # Additional expiration check (jose already does this, but being explicit)
             exp = payload.get("exp")
             if exp and datetime.utcnow().timestamp() > exp:
                 raise JWTError("Token has expired")
@@ -89,15 +67,7 @@ class TokenManager:
             raise JWTError(f"Invalid token: {str(e)}")
     
     def get_username_from_token(self, token: str) -> Optional[str]:
-        """
-        Extract username from token
-        
-        Args:
-            token: JWT token string
-            
-        Returns:
-            Username or None if invalid
-        """
+        """Extract username from token"""
         try:
             payload = self.verify_token(token)
             return payload.get("sub")
@@ -105,15 +75,7 @@ class TokenManager:
             return None
     
     def get_database_from_token(self, token: str) -> Optional[str]:
-        """
-        Extract database name from token
-        
-        Args:
-            token: JWT token string
-            
-        Returns:
-            Database name or None if invalid
-        """
+        """Extract database name from token"""
         try:
             payload = self.verify_token(token)
             return payload.get("dbname")
@@ -121,15 +83,7 @@ class TokenManager:
             return None
     
     def is_token_expired(self, token: str) -> bool:
-        """
-        Check if token is expired
-        
-        Args:
-            token: JWT token string
-            
-        Returns:
-            True if expired, False otherwise
-        """
+        """Check if token is expired"""
         try:
             payload = self.verify_token(token)
             exp = payload.get("exp")
@@ -140,15 +94,7 @@ class TokenManager:
             return True
     
     def get_token_expiry_info(self, token: str) -> Dict:
-        """
-        Get detailed token expiry information
-        
-        Args:
-            token: JWT token string
-            
-        Returns:
-            Dictionary with expiry details
-        """
+        """Get detailed token expiry information"""
         try:
             payload = self.verify_token(token)
             exp = payload.get("exp")
@@ -184,19 +130,7 @@ class AuthenticationService:
         user_data: Dict,
         database: str
     ) -> Dict:
-        """
-        Authenticate user and create session
-        
-        Args:
-            username: User's username
-            password: User's password (for future validation)
-            user_data: User data from database
-            database: Database name
-            
-        Returns:
-            Authentication response with token
-        """
-        # Create access token
+        """Authenticate user and create session"""
         access_token = self.token_manager.create_token(
             username=username,
             database=database,
@@ -212,42 +146,14 @@ class AuthenticationService:
         }
     
     def validate_token(self, token: str) -> Dict:
-        """
-        Validate token and return user info
-        
-        Args:
-            token: JWT token string
-            
-        Returns:
-            Token payload
-            
-        Raises:
-            JWTError: If token is invalid
-        """
+        """Validate token and return user info"""
         return self.token_manager.verify_token(token)
     
     async def get_current_user(
         self,
         credentials: HTTPAuthorizationCredentials = Security(HTTPBearer())
     ) -> Dict:
-        """
-        FastAPI dependency to get current authenticated user
-        Automatically validates token and raises HTTPException if expired
-        
-        Usage in FastAPI route:
-            @app.get("/protected")
-            async def protected_route(current_user: Dict = Depends(auth_service.get_current_user)):
-                return {"user": current_user}
-        
-        Args:
-            credentials: HTTP Bearer credentials from request header
-            
-        Returns:
-            User information from token
-            
-        Raises:
-            HTTPException: If token is missing, invalid, or expired
-        """
+        """FastAPI dependency to get current authenticated user"""
         if not credentials:
             raise HTTPException(
                 status_code=401,
@@ -260,7 +166,6 @@ class AuthenticationService:
         try:
             payload = self.token_manager.verify_token(token)
             
-            # Check if token is expired
             if self.token_manager.is_token_expired(token):
                 raise HTTPException(
                     status_code=401,
@@ -283,12 +188,7 @@ class AuthenticationService:
             )
     
     def create_token_dependency(self):
-        """
-        Create a dependency function for token validation
-        
-        Returns:
-            Async function that can be used with Depends()
-        """
+        """Create a dependency function for token validation"""
         async def verify_token_dependency(
             credentials: HTTPAuthorizationCredentials = Security(self.security)
         ):
@@ -301,15 +201,7 @@ class AuthenticationService:
 _auth_instance = None
 
 def get_auth_service(config: Optional[AuthConfig] = None) -> AuthenticationService:
-    """
-    Get singleton authentication service instance
-    
-    Args:
-        config: Optional authentication configuration
-        
-    Returns:
-        AuthenticationService instance
-    """
+    """Get singleton authentication service instance"""
     global _auth_instance
     if _auth_instance is None:
         token_manager = TokenManager(config) if config else TokenManager()

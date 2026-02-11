@@ -1,15 +1,3 @@
-'''
-
-                            Online Python Compiler.
-                Code, Compile, Run and Debug python program online.
-Write your code in this editor and press "Run" button to execute it.
-
-'''
-
-"""
-Database Queries Library - Dynamic Version
-Contains all SQL queries with dynamic query building capabilities
-"""
 from typing import Dict, List, Optional, Any, Union
 from .database import DatabaseConnection
 
@@ -461,6 +449,59 @@ class ContactQueries:
             cursor.execute(query, tuple(values))
             return cursor.fetchall()
     
+    @staticmethod
+    def get_tickets_with_contacts(
+        db: DatabaseConnection,
+        database: str,
+        status_id: int = None,
+        limit: int = 100
+    ) -> List[Dict]:
+        """
+        Join pm1ticket with pm1contact to get ticket details
+        alongside customer contact info.
+
+        Link:  pm1ticket.customer_id = pm1contact.id
+
+        Args:
+            db:        DatabaseConnection instance
+            database:  Child database name (e.g. "pmcrb_ambabajaj")
+            status_id: Optional — filter by ticket status_id
+            limit:     Max rows to return (default 100)
+
+        Returns:
+            List of dicts containing ticket + contact fields
+        """
+        base_query = """
+            SELECT
+                t.id            AS ticket_id,
+                t.cr_date,
+                t.updt_date,
+                t.subject,
+                t.status_id,
+                t.category_id,
+                t.channel_id,
+                t.customer_id,
+                c.l_name,
+                c.email,
+                c.phonefax
+            FROM pm1ticket AS t
+            LEFT JOIN pm1contact AS c ON t.customer_id = c.id
+            {where}
+            ORDER BY t.id DESC
+            LIMIT %s
+        """
+
+        if status_id is not None:
+            query = base_query.format(where="WHERE t.status_id = %s")
+            params = (status_id, limit)
+        else:
+            query = base_query.format(where="")
+            params = (limit,)
+
+        with db.get_cursor(database) as cursor:
+            cursor.execute(query, params)
+            return cursor.fetchall()
+
     @staticmethod
     def create_contact(
         db: DatabaseConnection,
